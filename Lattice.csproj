@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Extreme.Numerics" Version="7.0.11" />
+    <PackageReference Include="Extreme.Numerics.Generic" Version="7.0.2" />
+    <PackageReference Include="MathNet.Numerics" Version="4.9.0" />
+    <PackageReference Include="MathNet.Symbolics" Version="0.20.0" />
+    <PackageReference Include="Microsoft.Z3.x64" Version="4.8.7" />
+  </ItemGroup>
+
+</Project>
