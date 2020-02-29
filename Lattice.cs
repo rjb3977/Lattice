@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
-using Extreme.Mathematics;
-using Microsoft.Z3;
+using System.Numerics;
 using System.Linq;
+using Microsoft.Z3;
 
 namespace Lattice
 {
+    using Math;
+
     public static class Lattice
     {
         private static Vector<BigRational> Example = Vector.Create<BigRational>(
@@ -82,26 +84,11 @@ namespace Lattice
             if (index == -1)
             {
                 result.Add(Vector.Create(variables.Length, i => values[i].Value));
+                Console.WriteLine(Vector.Create(variables.Length, i => values[i].Value));
             }
             else
             {
-                BigInteger min, max;
-
-                try
-                {
-                    (min, max) = GetRange(context, optimize, variables[index]);
-                }
-                catch
-                {
-                    // Console.WriteLine(index);
-
-                    // foreach (var assertion in optimize.Assertions)
-                    // {
-                    //     Console.WriteLine(assertion);
-                    // }
-
-                    throw;
-                }
+                var (min, max) = GetRange(context, optimize, variables[index]);
 
                 Console.WriteLine($"{index}: {min} -> {max}");
 
@@ -126,27 +113,20 @@ namespace Lattice
             var minHandle = optimize.MkMinimize(variable);
             optimize.Check();
             var min = ParseBigRational(minHandle.Value.ToString());
-            Console.WriteLine("min: " + min.ToString());
             optimize.Pop();
 
             optimize.Push();
             var maxHandle = optimize.MkMaximize(variable);
             optimize.Check();
-            Console.WriteLine("max: " + maxHandle.Value.ToString());
             var max = ParseBigRational(maxHandle.Value.ToString());
-            Console.WriteLine("max: " + max.ToString());
             optimize.Pop();
 
-            Console.WriteLine("floor(max): " + BigRational.Floor(max));
-
-            return (BigRational.Ceiling(min).Numerator, BigRational.Floor(max).Numerator);
+            return (BigRational.Ceiling(min), BigRational.Floor(max));
         }
 
         private static BigRational ParseBigRational(string x)
         {
             var split = x.Split("/");
-
-            // Console.WriteLine(x);
 
             if (split.Length == 1)
             {
@@ -167,7 +147,7 @@ namespace Lattice
 
             for (var i = 0; i < variables.Length; ++i)
             {
-                lcm = BigInteger.LeastCommonMultiple(lcm, lhs[i].Denominator);
+                lcm = lcm * lhs[i].Denominator / BigInteger.GreatestCommonDivisor(lcm, lhs[i].Denominator);
                 gcd = BigInteger.GreatestCommonDivisor(gcd, lhs[i].Numerator);
             }
 

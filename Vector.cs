@@ -9,7 +9,8 @@ namespace Lattice.Math
     {
 #region create
 
-        public static Vector<T> Create<T>(IEnumerable<T> values) => new Vector<T>(values.ToArray());
+        public static Vector<T> Create<T>(params T[] values) => new Vector<T>(values);
+        public static Vector<T> Create<T>(IEnumerable<T> values) => Create(values.ToArray());
         public static Vector<T> Create<T>(int length, Func<int, T> generator) => Create(Enumerable.Range(0, length).Select(generator));
 
         public static Vector<T> CreateZero<T>(int length)

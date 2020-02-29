@@ -39,29 +39,27 @@ namespace Lattice
                 }
             }
 
-            // var upper = BigRational.Pow(2, 48);
+            // var upper = (BigRational) BigInteger.Pow(2, 48);
             // var lower = upper - upper / 10;
             var lower = BigRational.Zero;
             var upper = new BigRational(50048832364193);
-            var basis = Matrix.Create(basisEntries).GetInverse();
+            var basis = Matrix.Create(basisEntries).GetTranspose();
             var offset = Vector.Create(offsetEntries);
 
-            //Console.WriteLine(inverse);
+            var sw = new Stopwatch();
+            sw.Start();
 
-            // var sw = new Stopwatch();
-            // sw.Start();
+            var results = Lattice.Enumerate(dimensions, lower, upper, basis, offset);
 
-            // var results = Lattice.Enumerate(dimensions, lower, upper, basis, offset);
+            sw.Stop();
 
-            // sw.Stop();
+            foreach (var x in results)
+            {
+                Console.WriteLine(x);
+            }
 
-            // foreach (var x in results)
-            // {
-            //     Console.WriteLine(x);
-            // }
-
-            // Console.WriteLine($"total:   {results.Count}");
-            // Console.WriteLine($"elapsed: {sw.Elapsed}");
+            Console.WriteLine($"total:   {results.Count}");
+            Console.WriteLine($"elapsed: {sw.Elapsed}");
         }
     }
 }
