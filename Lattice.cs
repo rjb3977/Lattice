@@ -8,56 +8,6 @@ namespace Lattice
 {
     public static class Lattice
     {
-        private static bool GetBit(this ulong x, int n)
-        {
-            return ((x >> n) & 1) != 0;
-        }
-
-        public static List<Vector<BigInteger>> Enumerate(int dimensions, BigRational lower, BigRational upper, Matrix<BigRational> basis)
-        {
-            var basisInverse = basis.GetInverse();
-            var vertices = 1uL << dimensions;
-            var generators = new List<ValueTuple<Vector<BigInteger>, Vector<BigInteger>>>();
-
-            for (var i = 0uL; i < vertices; ++i)
-            {
-                var vertexEntries = new BigRational[dimensions];
-                var neighbors = new List<Vector<BigInteger>>();
-
-                for (var j = 0; j < dimensions; ++j)
-                {
-                    vertexEntries[j] = i.GetBit(j) ? upper : lower;
-                }
-
-                var vertex = basisInverse * Vector.Create(vertexEntries);
-
-                for (var j = 0; j < dimensions; ++j)
-                {
-                    var component = i.GetBit(j) ? lower - upper : upper - lower;
-                    var neighbor = basisInverse * Vector.Create(dimensions, k => k == j ? component : 0);
-
-                    var gcd = BigInteger.Zero;
-                    var lcm = BigInteger.One;
-
-                    for (var k = 0; k < dimensions; ++k)
-                    {
-                        gcd = BigInteger.GreatestCommonDivisor(gcd, neighbor[k].Numerator);
-                        lcm = BigInteger.LeastCommonMultiple(lcm, neighbor[k].Denominator);
-                    }
-
-                    neighbor *= new BigRational(lcm, gcd);
-                    neighbors.Add(Vector.Create(dimensions, k => neighbor[k].Numerator));
-                }
-
-                foreach (var n in neighbors)
-                {
-                    Console.WriteLine(n);
-                }
-            }
-
-            return new List<Vector<BigInteger>>();
-        }
-
         private static Vector<BigRational> Example = Vector.Create<BigRational>(
             253337345868468,
             -22694297408,
@@ -73,7 +23,7 @@ namespace Lattice
             -82866953394718
         );
 
-        public static List<Vector<BigInteger>> Enumerate2(int dimensions, BigRational lower, BigRational upper, Matrix<BigRational> basis, Vector<BigRational> offset)
+        public static List<Vector<BigInteger>> Enumerate(int dimensions, BigRational lower, BigRational upper, Matrix<BigRational> basis, Vector<BigRational> offset)
         {
             using var context = new Context();
             using var optimize = context.MkOptimize();
@@ -105,38 +55,55 @@ namespace Lattice
             optimize.Assert(constraints);
 
             var result = new List<Vector<BigInteger>>();
-            Solve(context, optimize, variables, new BigInteger?[dimensions], result);
+            Solve(context, optimize, variables, new BigInteger?[dimensions], result, dimensions - 1);
 
             return result;
         }
 
-        private static void Solve(Context context, Optimize optimize, ArithExpr[] variables, BigInteger?[] values, List<Vector<BigInteger>> result)
+        private static void Solve(Context context, Optimize optimize, ArithExpr[] variables, BigInteger?[] values, List<Vector<BigInteger>> result, int index)
         {
-            var index = -1;
-            var (min, max) = (BigInteger.MinValue, BigInteger.MaxValue);
+            // var index = -1;
+            // var (min, max) = (BigInteger.MinValue, BigInteger.MaxValue);
 
-            for (var i = 0; i < variables.Length; ++i)
-            {
-                if (values[i] == null)
-                {
-                    var (currentMin, currentMax) = GetRange(context, optimize, variables[i]);
+            // for (var i = 0; i < variables.Length; ++i)
+            // {
+            //     if (values[i] == null)
+            //     {
+            //         var (currentMin, currentMax) = GetRange(context, optimize, variables[i]);
 
-                    if (currentMax - currentMin < max - min)
-                    {
-                        index = i;
-                        (min, max) = (currentMin, currentMax);
-                    }
-                }
-            }
+            //         if (currentMax - currentMin < max - min)
+            //         {
+            //             index = i;
+            //             (min, max) = (currentMin, currentMax);
+            //         }
+            //     }
+            // }
 
             if (index == -1)
             {
                 result.Add(Vector.Create(variables.Length, i => values[i].Value));
-                // Console.WriteLine("result");
             }
             else
             {
-                // Console.WriteLine($"range of x{index} is {min} -> {max}");
+                BigInteger min, max;
+
+                try
+                {
+                    (min, max) = GetRange(context, optimize, variables[index]);
+                }
+                catch
+                {
+                    // Console.WriteLine(index);
+
+                    // foreach (var assertion in optimize.Assertions)
+                    // {
+                    //     Console.WriteLine(assertion);
+                    // }
+
+                    throw;
+                }
+
+                Console.WriteLine($"{index}: {min} -> {max}");
 
                 for (var x = min; x <= max; x += 1)
                 {
@@ -144,8 +111,8 @@ namespace Lattice
 
                     values[index] = x;
                     optimize.Push();
-                    optimize.Assert(context.MkEq(variables[index], context.MkIntConst(x.ToString())));
-                    Solve(context, optimize, variables, values, result);
+                    optimize.Assert(context.MkEq(variables[index], context.MkInt(x.ToString())));
+                    Solve(context, optimize, variables, values, result, index - 1);
                     optimize.Pop();
                 }
 
@@ -159,13 +126,18 @@ namespace Lattice
             var minHandle = optimize.MkMinimize(variable);
             optimize.Check();
             var min = ParseBigRational(minHandle.Value.ToString());
+            Console.WriteLine("min: " + min.ToString());
             optimize.Pop();
 
             optimize.Push();
             var maxHandle = optimize.MkMaximize(variable);
             optimize.Check();
+            Console.WriteLine("max: " + maxHandle.Value.ToString());
             var max = ParseBigRational(maxHandle.Value.ToString());
+            Console.WriteLine("max: " + max.ToString());
             optimize.Pop();
+
+            Console.WriteLine("floor(max): " + BigRational.Floor(max));
 
             return (BigRational.Ceiling(min).Numerator, BigRational.Floor(max).Numerator);
         }
@@ -173,6 +145,8 @@ namespace Lattice
         private static BigRational ParseBigRational(string x)
         {
             var split = x.Split("/");
+
+            // Console.WriteLine(x);
 
             if (split.Length == 1)
             {
@@ -209,8 +183,6 @@ namespace Lattice
             {
                 lhsExprs[i] = variables[i] * context.MkInt(lhs[i].ToString());
             }
-
-            // Console.WriteLine(context.MkAdd(lhsExprs) >= rhsExpr);
 
             return context.MkAdd(lhsExprs) >= rhsExpr;
         }

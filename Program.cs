@@ -1,21 +1,15 @@
 ﻿using System;
 using System.IO;
 using System.Diagnostics;
-// using MathNet.Numerics;
-// using MathNet.Numerics.LinearAlgebra;
-//using MathNet.Symbolics;
 
-using Extreme.Mathematics;
+using System.Numerics;
 
 namespace Lattice
 {
+    using Math;
+
     static class Program
     {
-        static Program()
-        {
-            NumericsConfiguration.Providers.RegisterGenericProvider();
-        }
-
         static void Main(string[] args)
         {
             if (args.Length < 1)
@@ -41,29 +35,33 @@ namespace Lattice
 
                 for (var col = 0; col < dimensions; ++col)
                 {
-                    basisEntries[col, row] = BigInteger.Parse(line[col]);
+                    basisEntries[row, col] = BigInteger.Parse(line[col]);
                 }
             }
 
-            var upper = BigRational.Pow(2, 48);
-            var lower = upper - upper / 10;
-            var basis = Matrix.Create(basisEntries);
+            // var upper = BigRational.Pow(2, 48);
+            // var lower = upper - upper / 10;
+            var lower = BigRational.Zero;
+            var upper = new BigRational(50048832364193);
+            var basis = Matrix.Create(basisEntries).GetInverse();
             var offset = Vector.Create(offsetEntries);
 
-            var sw = new Stopwatch();
-            sw.Start();
+            //Console.WriteLine(inverse);
 
-            var results = Lattice.Enumerate2(dimensions, lower, upper, basis, offset);
+            // var sw = new Stopwatch();
+            // sw.Start();
 
-            sw.Stop();
+            // var results = Lattice.Enumerate(dimensions, lower, upper, basis, offset);
 
-            foreach (var x in results)
-            {
-                Console.WriteLine(x);
-            }
+            // sw.Stop();
 
-            Console.WriteLine($"total:   {results.Count}");
-            Console.WriteLine($"elapsed: {sw.Elapsed}");
+            // foreach (var x in results)
+            // {
+            //     Console.WriteLine(x);
+            // }
+
+            // Console.WriteLine($"total:   {results.Count}");
+            // Console.WriteLine($"elapsed: {sw.Elapsed}");
         }
     }
 }
