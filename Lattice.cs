@@ -76,6 +76,7 @@ namespace Lattice
         public static List<Vector<BigInteger>> Enumerate2(int dimensions, BigRational lower, BigRational upper, Matrix<BigRational> basis, Vector<BigRational> offset)
         {
             using var context = new Context();
+            using var optimize = context.MkOptimize();
             var variables = new ArithExpr[dimensions];
             var basisInverse = basis.GetInverse();
 
@@ -101,32 +102,15 @@ namespace Lattice
                 }
             }
 
-            // var values = new ArithExpr[dimensions];
-
-            // for (var i = 0; i < dimensions; ++i)
-            // {
-            //     values[i] = context.MkInt(Example[i].ToString());
-            // }
-
-            // foreach (var assertion in assertions)
-            // {
-            //     Console.WriteLine(assertion.Substitute(variables, values).Simplify());
-            // }
-
-            // var handle = optimize.MkMaximize(variables[0]);
-            // var status = optimize.Check();
-            // // optimize.Model.Evalu
-
-            // Console.WriteLine(status);
-            // Console.WriteLine(handle.Value);
+            optimize.Assert(constraints);
 
             var result = new List<Vector<BigInteger>>();
-            Solve(context, variables, constraints, new BigInteger?[dimensions], result);
+            Solve(context, optimize, variables, new BigInteger?[dimensions], result);
 
             return result;
         }
 
-        private static void Solve(Context context, ArithExpr[] variables, BoolExpr[] constraints, BigInteger?[] values, List<Vector<BigInteger>> result)
+        private static void Solve(Context context, Optimize optimize, ArithExpr[] variables, BigInteger?[] values, List<Vector<BigInteger>> result)
         {
             var index = -1;
             var (min, max) = (BigInteger.MinValue, BigInteger.MaxValue);
@@ -135,7 +119,7 @@ namespace Lattice
             {
                 if (values[i] == null)
                 {
-                    var (currentMin, currentMax) = GetRange(context, variables, constraints, values, i);
+                    var (currentMin, currentMax) = GetRange(context, optimize, variables[i]);
 
                     if (currentMax - currentMin < max - min)
                     {
@@ -159,35 +143,26 @@ namespace Lattice
                     // Console.WriteLine($"setting x{index} to {x}");
 
                     values[index] = x;
-                    Solve(context, variables, constraints, values, result);
+                    optimize.Push();
+                    optimize.Assert(context.MkEq(variables[index], context.MkIntConst(x.ToString())));
+                    Solve(context, optimize, variables, values, result);
+                    optimize.Pop();
                 }
 
                 values[index] = null;
             }
         }
 
-        private static ValueTuple<BigInteger, BigInteger> GetRange(Context context, ArithExpr[] variables, BoolExpr[] constraints, BigInteger?[] values, int index)
+        private static ValueTuple<BigInteger, BigInteger> GetRange(Context context, Optimize optimize, ArithExpr variable)
         {
-            using var optimize = context.MkOptimize();
-
-            optimize.Assert(constraints);
-
-            for (var i = 0; i < variables.Length; ++i)
-            {
-                if (values[i] != null)
-                {
-                    optimize.Assert(context.MkEq(variables[i], context.MkInt(values[i].ToString())));
-                }
-            }
-
             optimize.Push();
-            var minHandle = optimize.MkMinimize(variables[index]);
+            var minHandle = optimize.MkMinimize(variable);
             optimize.Check();
             var min = ParseBigRational(minHandle.Value.ToString());
             optimize.Pop();
 
             optimize.Push();
-            var maxHandle = optimize.MkMaximize(variables[index]);
+            var maxHandle = optimize.MkMaximize(variable);
             optimize.Check();
             var max = ParseBigRational(maxHandle.Value.ToString());
             optimize.Pop();
