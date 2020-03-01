@@ -1,8 +1,7 @@
 ﻿using System;
+using System.Numerics;
 using System.IO;
 using System.Diagnostics;
-
-using System.Numerics;
 
 namespace Lattice
 {
@@ -41,10 +40,31 @@ namespace Lattice
 
             // var upper = (BigRational) BigInteger.Pow(2, 48);
             // var lower = upper - upper / 10;
-            var lower = BigRational.Zero;
-            var upper = new BigRational(50048832364193);
+            // var lower = BigRational.Zero;
+            // var upper = new BigRational(50048832364193);
             var basis = Matrix.Create(basisEntries).GetTranspose();
             var offset = Vector.Create(offsetEntries);
+
+            var lower = Vector.CreateZero<BigRational>(17);
+            var upper = Vector.Create<BigRational>(
+                1 << 46,
+                1 << 46,
+                1 << 46,
+                1 << 46,
+                1 << 46,
+                1 << 46,
+                1 << 46,
+                1 << 46,
+                1 << 46,
+                1 << 46,
+                1 << 46,
+                1 << 46,
+                1 << 46,
+                1 << 46,
+                1 << 41,
+                1 << 44,
+                1 << 44
+            );
 
             var sw = new Stopwatch();
             sw.Start();

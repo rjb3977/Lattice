@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Linq;
 using Microsoft.Z3;
 
 namespace Lattice
@@ -25,7 +24,7 @@ namespace Lattice
             -82866953394718
         );
 
-        public static List<Vector<BigInteger>> Enumerate(int dimensions, BigRational lower, BigRational upper, Matrix<BigRational> basis, Vector<BigRational> offset)
+        public static List<Vector<BigInteger>> Enumerate(int dimensions, Vector<BigRational> lower, Vector<BigRational> upper, Matrix<BigRational> basis, Vector<BigRational> offset)
         {
             using var context = new Context();
             using var optimize = context.MkOptimize();
@@ -42,17 +41,26 @@ namespace Lattice
             for (var i = 0; i < dimensions; ++i)
             {
                 {
-                    var face = Vector.Create(dimensions, j => lower) - offset;
+                    var face = lower - offset;
                     var normal = Vector.Create(dimensions, j => j == i ? BigRational.One : 0);
                     constraints[2 * i + 0] = InHalfPlane(context, variables, basis, basisInverse, face, normal);
                 }
 
                 {
-                    var face = Vector.Create(dimensions, j => upper) - offset;
+                    var face = upper - offset;
                     var normal = Vector.Create(dimensions, j => j == i ? BigRational.MinusOne : 0);
                     constraints[2 * i + 1] = InHalfPlane(context, variables, basis, basisInverse, face, normal);
                 }
             }
+
+            var zeroes = new Expr[dimensions];
+
+            for (var i = 0; i < dimensions; ++i)
+            {
+                zeroes[i] = context.MkReal(0);
+            }
+
+            Console.WriteLine(context.MkAnd(constraints).Substitute(variables, zeroes).Simplify());
 
             optimize.Assert(constraints);
 
@@ -112,30 +120,16 @@ namespace Lattice
             optimize.Push();
             var minHandle = optimize.MkMinimize(variable);
             optimize.Check();
-            var min = ParseBigRational(minHandle.Value.ToString());
+            var min = BigRational.Parse(minHandle.Value.ToString());
             optimize.Pop();
 
             optimize.Push();
             var maxHandle = optimize.MkMaximize(variable);
             optimize.Check();
-            var max = ParseBigRational(maxHandle.Value.ToString());
+            var max = BigRational.Parse(maxHandle.Value.ToString());
             optimize.Pop();
 
             return (BigRational.Ceiling(min), BigRational.Floor(max));
-        }
-
-        private static BigRational ParseBigRational(string x)
-        {
-            var split = x.Split("/");
-
-            if (split.Length == 1)
-            {
-                return new BigRational(BigInteger.Parse(split[0]));
-            }
-            else
-            {
-                return new BigRational(BigInteger.Parse(split[0]), BigInteger.Parse(split[1]));
-            }
         }
 
         private static BoolExpr InHalfPlane(Context context, ArithExpr[] variables, Matrix<BigRational> basis, Matrix<BigRational> basisInverse, Vector<BigRational> offset, Vector<BigRational> normal)

@@ -159,7 +159,7 @@ namespace Lattice.Math
                 var success = true;
 
                 success &= BigInteger.TryParse(match.Groups[1].Value, out numerator);
-                success &= BigInteger.TryParse(match.Groups[1].Value, out denominator);
+                success &= BigInteger.TryParse(match.Groups[3].Value, out denominator);
 
                 if (success)
                 {
