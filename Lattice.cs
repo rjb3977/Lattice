@@ -60,8 +60,6 @@ namespace Lattice
                 zeroes[i] = context.MkReal(0);
             }
 
-            Console.WriteLine(context.MkAnd(constraints).Substitute(variables, zeroes).Simplify());
-
             optimize.Assert(constraints);
 
             var result = new List<Vector<BigInteger>>();
@@ -121,13 +119,19 @@ namespace Lattice
             var minHandle = optimize.MkMinimize(variable);
             optimize.Check();
             var min = BigRational.Parse(minHandle.Value.ToString());
+            // Console.WriteLine(minHandle.Value.ToString());
             optimize.Pop();
+
+            // Console.WriteLine(min);
 
             optimize.Push();
             var maxHandle = optimize.MkMaximize(variable);
             optimize.Check();
             var max = BigRational.Parse(maxHandle.Value.ToString());
+            // Console.WriteLine(maxHandle.Value.ToString());
             optimize.Pop();
+
+            // Console.WriteLine(max);
 
             return (BigRational.Ceiling(min), BigRational.Floor(max));
         }

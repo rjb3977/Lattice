@@ -45,26 +45,50 @@ namespace Lattice
             var basis = Matrix.Create(basisEntries).GetTranspose();
             var offset = Vector.Create(offsetEntries);
 
-            var lower = Vector.CreateZero<BigRational>(17);
-            var upper = Vector.Create<BigRational>(
-                1 << 46,
-                1 << 46,
-                1 << 46,
-                1 << 46,
-                1 << 46,
-                1 << 46,
-                1 << 46,
-                1 << 46,
-                1 << 46,
-                1 << 46,
-                1 << 46,
-                1 << 46,
-                1 << 46,
-                1 << 46,
-                1 << 41,
-                1 << 44,
-                1 << 44
+            // var lower = Vector.CreateZero<BigRational>(17);
+            // var upper = Vector.Create<BigRational>(
+            //     1 << 46,
+            //     1 << 46,
+            //     1 << 46,
+            //     1 << 46,
+            //     1 << 46,
+            //     1 << 46,
+            //     1 << 46,
+            //     1 << 46,
+            //     1 << 46,
+            //     1 << 46,
+            //     1 << 46,
+            //     1 << 46,
+            //     1 << 46,
+            //     1 << 46,
+            //     1 << 41,
+            //     1 << 44,
+            //     1 << 44
+            // );
+
+            var lower = Vector.Create<BigRational>(
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                279275953455104,
+                263882790666240,
+                263882790666240
             );
+            var upper = Vector.Create<BigRational>(dimensions, x => 1L << 48);
+
+            Console.WriteLine("lower:  " + lower);
+            Console.WriteLine("offset: " + offset);
 
             var sw = new Stopwatch();
             sw.Start();

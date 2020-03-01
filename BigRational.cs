@@ -146,7 +146,7 @@ namespace Lattice.Math
 #endregion
 #region parse
 
-        private static readonly Regex parseRegex = new Regex(@"([0-9]+)\s*(/\s*([0-9]+))?");
+        private static readonly Regex parseRegex = new Regex(@"((\-|\+)?[0-9]+)\s*(/\s*([0-9]+))?");
 
         public static bool TryParse(string s, out BigRational result)
         {
@@ -159,7 +159,7 @@ namespace Lattice.Math
                 var success = true;
 
                 success &= BigInteger.TryParse(match.Groups[1].Value, out numerator);
-                success &= BigInteger.TryParse(match.Groups[3].Value, out denominator);
+                success &= BigInteger.TryParse(match.Groups[4].Value, out denominator);
 
                 if (success)
                 {
