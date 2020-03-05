@@ -32,6 +32,7 @@ namespace Lattice.Math
 
         public static Matrix<T> CreateZero<T>(int rows, int cols) => Create(rows, cols, (row, col) => LinearType<T>.Zero);
         public static Matrix<T> CreateIdentity<T>(int rows, int cols) => Create(rows, cols, (row, col) => row == col ? LinearType<T>.One : LinearType<T>.Zero);
+        public static Matrix<T> CreateDiagonal<T>(Vector<T> vector) => Create(vector.Length, vector.Length, (row, col) => row == col ? vector[row] : LinearType<T>.Zero);
 
         public static Matrix<T> CreateRows<T>(IEnumerable<IEnumerable<T>> rows)
         {

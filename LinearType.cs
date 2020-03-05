@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 
 namespace Lattice.Math
 {
@@ -160,5 +161,26 @@ namespace Lattice.Math
         public BigRational Subtract(BigRational left, BigRational right) => left - right;
         public BigRational Multiply(BigRational left, BigRational right) => left * right;
         public BigRational Divide(BigRational left, BigRational right) => left / right;
+    }
+
+    internal class BigIntegerRationalType : ILinearType<BigInteger>
+    {
+        public BigInteger Zero { get => BigInteger.Zero; }
+        public BigInteger One { get => BigInteger.One; }
+        public BigInteger MinusOne { get => BigInteger.MinusOne; }
+
+        public bool IsZero(BigInteger value) => value.IsZero;
+        public int Sign(BigInteger value) => value.Sign;
+        public int Compare(BigInteger left, BigInteger right) => BigInteger.Compare(left, right);
+
+        public BigInteger AbsoluteValue(BigInteger value) => BigInteger.Abs(value);
+        public BigInteger Min(BigInteger left, BigInteger right) => BigInteger.Min(left, right);
+        public BigInteger Max(BigInteger left, BigInteger right) => BigInteger.Max(left, right);
+
+        public BigInteger Negate(BigInteger value) => -value;
+        public BigInteger Add(BigInteger left, BigInteger right) => left + right;
+        public BigInteger Subtract(BigInteger left, BigInteger right) => left - right;
+        public BigInteger Multiply(BigInteger left, BigInteger right) => left * right;
+        public BigInteger Divide(BigInteger left, BigInteger right) => left / right;
     }
 }
