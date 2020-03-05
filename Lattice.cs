@@ -138,7 +138,7 @@ namespace Lattice
 
         private static BoolExpr InHalfPlane(Context context, ArithExpr[] variables, Matrix<BigRational> basis, Matrix<BigRational> basisInverse, Vector<BigRational> offset, Vector<BigRational> normal)
         {
-            var rhs = Vector.DotProduct(normal, offset);
+            var rhs = Vector.InnerProduct(normal, offset);
             var lhs = normal * basis;
             var lcm = rhs.Denominator;
             var gcd = rhs.Numerator;

@@ -81,7 +81,7 @@ namespace Lattice.Math
             return Create(left.Select(x => LinearType<T>.Divide(x, right)));
         }
 
-        public static T DotProduct<T>(Vector<T> left, Vector<T> right)
+        public static T InnerProduct<T>(Vector<T> left, Vector<T> right)
         {
             if (left.Length != right.Length)
             {
@@ -89,6 +89,46 @@ namespace Lattice.Math
             }
 
             return Enumerable.Zip(left, right, LinearType<T>.Multiply).Aggregate(LinearType<T>.Zero, LinearType<T>.Add);
+        }
+
+        public static Matrix<T> OuterProduct<T>(Vector<T> left, Vector<T> right)
+        {
+            return Matrix.Create(left.Length, right.Length, (row, col) => LinearType<T>.Multiply(left[row], right[col]));
+        }
+
+        public static T ScalarProject<T>(Vector<T> value, Vector<T> onto)
+        {
+            return LinearType<T>.Divide(InnerProduct(value, onto),  InnerProduct(onto, onto));
+        }
+
+        public static Vector<T> Project<T>(Vector<T> value, Vector<T> onto)
+        {
+            return Multiply(ScalarProject(value, onto), onto);
+        }
+
+        public static Vector<T> Reject<T>(Vector<T> value, Vector<T> from)
+        {
+            return Subtract(value, Project(value, from));
+        }
+
+        public static Vector<T> MultiplyElements<T>(Vector<T> left, Vector<T> right)
+        {
+            if (left.Length != right.Length)
+            {
+                throw new ArgumentException("Vector dimensions must be equal.");
+            }
+
+            return Create(Enumerable.Zip(left, right, LinearType<T>.Multiply));
+        }
+
+        public static Vector<T> DivideElements<T>(Vector<T> left, Vector<T> right)
+        {
+            if (left.Length != right.Length)
+            {
+                throw new ArgumentException("Vector dimensions must be equal.");
+            }
+
+            return Create(Enumerable.Zip(left, right, LinearType<T>.Divide));
         }
 
 #endregion
@@ -104,7 +144,7 @@ namespace Lattice.Math
         public static Vector<T> operator -(Vector<T> left, Vector<T> right) => Vector.Subtract(left, right);
         public static Vector<T> operator *(T left, Vector<T> right) => Vector.Multiply(left, right);
         public static Vector<T> operator *(Vector<T> left, T right) => Vector.Multiply(left, right);
-        public static T operator *(Vector<T> left, Vector<T> right) => Vector.DotProduct(left, right);
+        public static T operator *(Vector<T> left, Vector<T> right) => Vector.InnerProduct(left, right);
         public static Vector<T> operator /(Vector<T> left, T right) => Vector.Divide(left, right);
 
 #endregion

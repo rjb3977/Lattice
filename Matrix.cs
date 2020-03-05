@@ -123,7 +123,7 @@ namespace Lattice.Math
                 throw new ArgumentException("Matrix dimensions must be compatible.");
             }
 
-            return Create(left.Rows, right.Columns, (row, col) => Vector.DotProduct(left.GetRow(row), right.GetColumn(col)));
+            return Create(left.Rows, right.Columns, (row, col) => Vector.InnerProduct(left.GetRow(row), right.GetColumn(col)));
         }
 
         public static Matrix<T> Multiply<T>(T left, Matrix<T> right)
@@ -143,7 +143,7 @@ namespace Lattice.Math
                 throw new ArgumentException("Vector and matrix dimensions must be compatible.");
             }
 
-            return Vector.Create(right.Columns, col => Vector.DotProduct(left, right.GetColumn(col)));
+            return Vector.Create(right.Columns, col => Vector.InnerProduct(left, right.GetColumn(col)));
         }
 
         public static Vector<T> Multiply<T>(Matrix<T> left, Vector<T> right)
@@ -153,7 +153,7 @@ namespace Lattice.Math
                 throw new ArgumentException("Matrix and vector dimensions must be compatible.");
             }
 
-            return Vector.Create(left.Rows, row => Vector.DotProduct(left.GetRow(row), right));
+            return Vector.Create(left.Rows, row => Vector.InnerProduct(left.GetRow(row), right));
         }
 
         public static Matrix<T> Divide<T>(Matrix<T> left, T right)
