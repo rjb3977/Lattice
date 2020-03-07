@@ -68,6 +68,8 @@ namespace Lattice
             //     1 << 44
             // );
 
+            Console.ReadKey();
+
             var lower = Vector.Create<BigRational>(
                 211106232532992,
                 211106232532992,
@@ -89,13 +91,13 @@ namespace Lattice
             );
             var upper = Vector.Create<BigRational>(dimensions, x => 1L << 48);
 
-            Console.WriteLine("lower:  " + lower);
-            Console.WriteLine("offset: " + offset);
+            // Console.WriteLine("lower:  " + lower);
+            // Console.WriteLine("offset: " + offset);
 
             var sw = new Stopwatch();
             sw.Start();
 
-            //var results = Lattice.Enumerate(dimensions, lower, upper, basis, offset);
+            // var results = Lattice.Enumerate(dimensions, lower, upper, basis, offset);
             var results = BetterLattice.Enumerate(dimensions, basis, lower - offset, upper - offset);
 
             sw.Stop();
@@ -108,6 +110,15 @@ namespace Lattice
             Console.WriteLine($"total:       {results.Count}");
             Console.WriteLine($"elapsed:     {sw.Elapsed}");
             Console.WriteLine($"solve calls: {Lattice.SolveCalls}");
+        }
+
+        static void Main2(string[] args)
+        {
+            var A = Matrix.Create(new BigRational[,] { { 3, 2, 1, 1, 0 }, { 2, 5, 3, 0, 1 } });
+            var b = Vector.Create(new BigRational[] { 10, 15 });
+            var c = Vector.Create(new BigRational[] { -2, -3, -4, 0, 0 });
+
+            Console.WriteLine(BetterLattice.Solve(A, b, c));
         }
     }
 }

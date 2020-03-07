@@ -23,21 +23,77 @@ namespace Lattice
             Setup(dimensions, basis, lower, upper, out transform, out transformOffset, out A, out b);
 
             var solutions = new List<Vector<BigInteger>>();
-            Search(dimensions, basis, transform, transformOffset, A, b, solutions, 0);
+            Search(dimensions, basis, transform, transformOffset, A, b, solutions, new Stack<BigInteger>());
 
             return solutions;
         }
 
-        private static void Search(int dimensions, Matrix<BigRational> basis, Matrix<BigRational> transform, Vector<BigRational> transformOffset, Matrix<BigRational> A, Vector<BigRational> b, List<Vector<BigInteger>> solutions, int current)
+        private static void Search(int dimensions, Matrix<BigRational> basis, Matrix<BigRational> transform, Vector<BigRational> transformOffset, Matrix<BigRational> A, Vector<BigRational> b, List<Vector<BigInteger>> solutions, Stack<BigInteger> set)
         {
+            if (set.Count == dimensions)
+            {
+                Console.WriteLine("asdf");
+                solutions.Add(Vector.Create(set.AsEnumerable()));
+            }
+            else
+            {
+                var n = set.Count;
 
+                // Console.WriteLine("A:\n" + A);
+                // Console.WriteLine("b: " + b);
+                // Console.WriteLine("c: " + transform.GetRow(n));
+                // Console.WriteLine("result:");
+                // Console.WriteLine(Solve(A, b, transform.GetRow(n)));
+
+                var lower = transformOffset - transform * Solve(A, b, -transform.GetRow(n));
+                var upper = transformOffset - transform * Solve(A, b, transform.GetRow(n));
+
+                // Console.WriteLine(lower);
+                // Console.WriteLine(upper);
+
+                var min = BigRational.Ceiling(lower[n]);
+                var max = BigRational.Floor(upper[n]);
+
+                Console.WriteLine($"{set.Count}: {min} -> {max}");
+
+                for (var x = min; x <= max; ++x)
+                {
+                    var A2 = Matrix.Create(A.Rows + 1, A.Columns, (row, col) => row < A.Rows ? A[row, col] : transform[n, col]);
+                    var b2 = Vector.Create(b.Length + 1, row => row < b.Length ? b[row] : transformOffset[n] - x);
+
+                    set.Push(x);
+                    Search(dimensions, basis, transform, transformOffset, A2, b2, solutions, set);
+                    set.Pop();
+                }
+            }
         }
 
-        private static Vector<BigRational> Solve(Matrix<BigRational> transform, Vector<BigRational> transformOffset, Matrix<BigRational> A, Vector<BigRational> b, Vector<BigRational> c)
+        public static Vector<BigRational> Solve(Matrix<BigRational> A, Vector<BigRational> b, Vector<BigRational> c)
         {
             // permutation matrices on A
-            var B = Matrix.Create<BigRational>(A.Columns, A.Rows, (row, col) => row < A.Columns - A.Rows ? 0 : row - (A.Columns - A.Rows) == col ? 1 : 0);
-            var N = Matrix.Create<BigRational>(A.Columns, A.Columns - A.Rows, (row, col) => row < A.Columns - A.Rows ? row == col ? 1 : 0 : 0);
+            Matrix<BigRational> B;
+            Matrix<BigRational> N;
+
+            {
+                var BColumns = new List<int>();
+                var NColumns = new List<int>();
+
+                for (var i = 0; i < A.Columns; ++i)
+                {
+                    BColumns.Add(i);
+                    var rank = 0;
+                    Matrix.Create(A.Rows, BColumns.Count, (row, col) => A[row, BColumns[col]]).GetRowReduce(out rank);
+
+                    if (rank != BColumns.Count)
+                    {
+                        BColumns.Remove(i);
+                        NColumns.Add(i);
+                    }
+                }
+
+                B = Matrix.Create<BigRational>(A.Columns, BColumns.Count, (row, col) => row == BColumns[col] ? 1 : 0);
+                N = Matrix.Create<BigRational>(A.Columns, NColumns.Count, (row, col) => row == NColumns[col] ? 1 : 0);
+            }
 
             var x = (A * B).GetInverse() * b;
 
@@ -47,13 +103,22 @@ namespace Lattice
                 var s = (c * N) - (A * N).GetTranspose() * λ;
                 var validEntering = Enumerable.Range(0, A.Columns - A.Rows).Where(i => s[i].Sign < 0);
 
+                // Console.WriteLine("B:\n" + (A * B));
+                // Console.WriteLine("N:\n" + (A * N));
+                // Console.WriteLine("λ: " + λ);
+                // Console.WriteLine("s: " + s);
+                // Console.WriteLine("x: " + x);
+
                 if (!validEntering.Any())
                 {
                     break;
                 }
 
                 var (_, q) = validEntering.Min(i => (s[i], i));
-                var d = (A * B).GetInverse() * A.GetColumn(q);
+                var d = (A * B).GetInverse() * (A * N.GetColumn(q));
+
+                // Console.WriteLine("q: " + q);
+                // Console.WriteLine("d: " + d);
 
                 if (d.All(x => x.Sign <= 0))
                 {
@@ -62,8 +127,19 @@ namespace Lattice
 
                 var (xq, p) = x.Select((x, i) => (x: x, i: i)).Where(a => d[a.i].Sign > 0).Min(a => (a.x / d[a.i], a.i));
 
-                x -= xq * (d - Vector.CreateBasis<BigRational>(A.Rows, p));
+                // Console.WriteLine("q: " + p);
+
+                x -= xq * d;
+
+                // Console.WriteLine("X: " + x);
+
+                x += xq * Vector.CreateBasis<BigRational>(A.Rows, p);
+
+                // Console.WriteLine("X: " + x);
+
                 (B, N) = (Matrix.Create(B.Rows, B.Columns, (row, col) => col == p ? N[row, q] : B[row, col]), Matrix.Create(N.Rows, N.Columns, (row, col) => col == q ? B[row, p] : N[row, col]));
+
+                // Console.WriteLine();
             }
 
             return x * B.GetTranspose();
@@ -101,29 +177,40 @@ namespace Lattice
             }
 
             var count = dimensions;
-            constraints = Matrix.Create(constraints).GetRowReduce(ref count).ToArray();
+            constraints = Matrix.Create(constraints).GetRowReduce(count).ToArray();
 
             if (count != dimensions)
             {
                 throw new ArithmeticException("Unable to reduce constraint matrix appropriately");
             }
 
+            b = Vector.Create(dimensions, row => constraints[row, 3 * dimensions]);
+
             for (var row = dimensions; row < dimensions * 2; ++row)
             {
                 if (constraints[row, 3 * dimensions].Sign < 0)
                 {
-                    for (var col = 0; col < dimensions * 3 + 1; ++col)
+                    for (var col = 0; col < 3 * dimensions + 1; ++col)
                     {
                         constraints[row, col] = -constraints[row, col];
                     }
                 }
             }
 
-            transform = Matrix.Create(dimensions, 2 * dimensions, (row, col) => -constraints[row, dimensions + col]);
-            transformOffset = Vector.Create(dimensions, row => -constraints[row, 3 * dimensions]);
+            transform = Matrix.Create(dimensions, 2 * dimensions, (row, col) => constraints[row, dimensions + col]);
+            transformOffset = Vector.Create(dimensions, row => constraints[row, 3 * dimensions]);
 
             A = Matrix.Create(dimensions, 2 * dimensions, (row, col) => constraints[dimensions + row, dimensions + col]);
-            b = Vector.Create(dimensions, row => constraints[row, 3 * dimensions]);
+            b = Vector.Create(dimensions, row => constraints[dimensions + row, 3 * dimensions]);
+
+            var v = Vector.Create(70368744177664, 0, 0, 70368744177664, 70368744177664, 0, 0, 70368744177664, 70368744177664, 0, 70368744177664, 0, 70368744177664, 0, 70368744177664, 0, 0, 70368744177664, 70368744177664, 0, 0, 70368744177664, 70368744177664, 0, 0, 70368744177664, 0, 70368744177664, 0, 2199023255552, 0, 17592186044416, 0, 17592186044416);
+
+
+
+            // Console.WriteLine(A);
+            // Console.WriteLine(b);
+            // Console.WriteLine(transform.GetRow(0));
+            // Console.WriteLine(transformOffset[0]);
         }
     }
 }

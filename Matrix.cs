@@ -34,6 +34,8 @@ namespace Lattice.Math
         public static Matrix<T> CreateZero<T>(int rows, int cols) => Create(rows, cols, (row, col) => LinearType<T>.Zero);
         public static Matrix<T> CreateIdentity<T>(int rows, int cols) => Create(rows, cols, (row, col) => row == col ? LinearType<T>.One : LinearType<T>.Zero);
         public static Matrix<T> CreateDiagonal<T>(Vector<T> vector) => Create(vector.Length, vector.Length, (row, col) => row == col ? vector[row] : LinearType<T>.Zero);
+        public static Matrix<T> CreateRows<T>(IEnumerable<Vector<T>> rows) => CreateRows(rows.Cast<IEnumerable<T>>());
+        public static Matrix<T> CreateColumns<T>(IEnumerable<Vector<T>> cols) => CreateColumns(cols.Cast<IEnumerable<T>>());
 
         public static Matrix<T> CreateRows<T>(IEnumerable<IEnumerable<T>> rows)
         {
@@ -60,6 +62,7 @@ namespace Lattice.Math
             return Create(entries);
         }
 
+
         public static Matrix<T> CreateColumns<T>(IEnumerable<IEnumerable<T>> cols)
         {
             if (cols.Count() < 1 || cols.First().Count() < 1)
@@ -84,6 +87,7 @@ namespace Lattice.Math
 
             return Create(entries);
         }
+
 
 #endregion
 #region arithmetic
@@ -168,15 +172,22 @@ namespace Lattice.Math
             return Create(value.Columns, value.Rows, (row, col) => value[col, row]);
         }
 
-        public static Matrix<T> RowReduce<T>(Matrix<T> value, ref int count)
+        public static Matrix<T> RowReduce<T>(Matrix<T> value, out int rank, int count = -1)
         {
-            var rows = value.GetRows().ToArray();
-
-            for (var col = 0; col < count; ++col)
+            if (count == -1)
             {
-                var bestRow = col;
+                count = value.Columns;
+            }
 
-                for (var row = col + 1; row < value.Rows; ++row)
+            var rows = value.GetRows().ToArray();
+            var map = new int[count];
+            rank = 0;
+
+            for (var col = 0; col < count && rank < value.Rows; ++col)
+            {
+                var bestRow = rank;
+
+                for (var row = rank + 1; row < value.Rows; ++row)
                 {
                     if (LinearType<T>.Compare(LinearType<T>.AbsoluteValue(rows[row][col]), LinearType<T>.AbsoluteValue(rows[bestRow][col])) > 0)
                     {
@@ -186,39 +197,37 @@ namespace Lattice.Math
 
                 if (LinearType<T>.IsZero(rows[bestRow][col]))
                 {
-                    count = col;
-                    break;
+                    map[col] = -1;
+                    continue;
                 }
 
-                (rows[col], rows[bestRow]) = (rows[bestRow], rows[col]);
-                rows[col] = Vector.Divide(rows[col], rows[col][col]);
+                (rows[rank], rows[bestRow]) = (rows[bestRow], rows[rank]);
+                rows[rank] = Vector.Divide(rows[rank], rows[rank][col]);
 
-                for (var row = col + 1; row < value.Rows; ++row)
+                for (var row = rank + 1; row < value.Rows; ++row)
                 {
-                    rows[row] -= Vector.Multiply(rows[col], rows[row][col]);
+                    rows[row] -= Vector.Multiply(rows[rank], rows[row][col]);
                 }
+
+                map[col] = rank;
+                ++rank;
             }
 
             for (var col = count - 1; col >= 0; --col)
             {
-                for (var row = col - 1; row >= 0; --row)
+                for (var row = map[col] - 1; row >= 0; --row)
                 {
-                    rows[row] -= Vector.Multiply(rows[col], rows[row][col]);
+                    rows[row] -= Vector.Multiply(rows[map[col]], rows[row][col]);
                 }
             }
 
             return Create(value.Rows, value.Columns, (row, col) => rows[row][col]);
         }
 
-        public static Matrix<T> RowReduce<T>(Matrix<T> value)
+        public static Matrix<T> RowReduce<T>(Matrix<T> value, int count = -1)
         {
-            var count = System.Math.Min(value.Rows, value.Columns);
-            var result = RowReduce(value, ref count);
-
-            if (count != System.Math.Min(value.Rows, value.Columns))
-            {
-                throw new ArithmeticException("Matrix does not have full rank");
-            }
+            var rank = 0;
+            var result = RowReduce(value, out rank, count);
 
             return result;
         }
@@ -232,9 +241,16 @@ namespace Lattice.Math
 
             var identity = CreateIdentity<T>(value.Rows, value.Columns);
             var intermediate = Create(value.Rows, 2 * value.Columns, (row, col) => col < value.Columns ? value[row, col] : identity[row, col - value.Columns]);
-            var result = RowReduce(intermediate);
 
-            return Create(value.Rows, value.Columns, (row, col) => result[row, col]);
+            var rank = 0;
+            var result = RowReduce(intermediate, out rank, value.Columns);
+
+            if (rank != value.Rows)
+            {
+                throw new ArithmeticException("Matrix must be invertible.");
+            }
+
+            return Create(value.Rows, value.Columns, (row, col) => result[row, value.Columns + col]);
         }
 
 #endregion
@@ -308,8 +324,8 @@ namespace Lattice.Math
 
         public Matrix<T> GetTranspose() => Matrix.Transpose(this);
         public Matrix<T> GetInverse() => Matrix.Inverse(this);
-        public Matrix<T> GetRowReduce(ref int count) => Matrix.RowReduce(this, ref count);
-        public Matrix<T> GetRowReduce() => Matrix.RowReduce(this);
+        public Matrix<T> GetRowReduce(out int rank, int count = -1) => Matrix.RowReduce(this, out rank, count);
+        public Matrix<T> GetRowReduce(int count = -1) => Matrix.RowReduce(this, count);
 
         public readonly T this[int row, int col] { get => this.values[row, col]; }
 
