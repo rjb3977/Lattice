@@ -68,8 +68,12 @@ namespace Lattice
             return result;
         }
 
+        public static long SolveCalls { get; private set; }
+
         private static void Solve(Context context, Optimize optimize, ArithExpr[] variables, BigInteger?[] values, List<Vector<BigInteger>> result, int index)
         {
+            ++SolveCalls;
+
             // var index = -1;
             // var (min, max) = (BigInteger.MinValue, BigInteger.MaxValue);
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace Lattice.Math
 {
@@ -167,21 +168,11 @@ namespace Lattice.Math
             return Create(value.Columns, value.Rows, (row, col) => value[col, row]);
         }
 
-        public static Matrix<T> Inverse<T>(Matrix<T> value)
+        public static Matrix<T> RowReduce<T>(Matrix<T> value, ref int count)
         {
-            if (value.Rows != value.Columns)
-            {
-                throw new ArgumentException("Matrix must be square.");
-            }
+            var rows = value.GetRows().ToArray();
 
-            var rows = new Vector<T>[value.Rows];
-
-            for (var row = 0; row < value.Rows; ++row)
-            {
-                rows[row] = Vector.Create(2 * value.Columns, col => col < value.Columns ? value[row, col] : col - value.Columns == row ? LinearType<T>.One : LinearType<T>.Zero);
-            }
-
-            for (var col = 0; col < value.Columns; ++col)
+            for (var col = 0; col < count; ++col)
             {
                 var bestRow = col;
 
@@ -195,7 +186,8 @@ namespace Lattice.Math
 
                 if (LinearType<T>.IsZero(rows[bestRow][col]))
                 {
-                    throw new DivideByZeroException("Matrix must be invertible.");
+                    count = col;
+                    break;
                 }
 
                 (rows[col], rows[bestRow]) = (rows[bestRow], rows[col]);
@@ -207,7 +199,7 @@ namespace Lattice.Math
                 }
             }
 
-            for (var col = value.Columns - 1; col >= 0; --col)
+            for (var col = count - 1; col >= 0; --col)
             {
                 for (var row = col - 1; row >= 0; --row)
                 {
@@ -215,7 +207,34 @@ namespace Lattice.Math
                 }
             }
 
-            return Create(value.Rows, value.Columns, (row, col) => rows[row][value.Columns + col]);
+            return Create(value.Rows, value.Columns, (row, col) => rows[row][col]);
+        }
+
+        public static Matrix<T> RowReduce<T>(Matrix<T> value)
+        {
+            var count = System.Math.Min(value.Rows, value.Columns);
+            var result = RowReduce(value, ref count);
+
+            if (count != System.Math.Min(value.Rows, value.Columns))
+            {
+                throw new ArithmeticException("Matrix does not have full rank");
+            }
+
+            return result;
+        }
+
+        public static Matrix<T> Inverse<T>(Matrix<T> value)
+        {
+            if (value.Rows != value.Columns)
+            {
+                throw new ArgumentException("Matrix must be square.");
+            }
+
+            var identity = CreateIdentity<T>(value.Rows, value.Columns);
+            var intermediate = Create(value.Rows, 2 * value.Columns, (row, col) => col < value.Columns ? value[row, col] : identity[row, col - value.Columns]);
+            var result = RowReduce(intermediate);
+
+            return Create(value.Rows, value.Columns, (row, col) => result[row, col]);
         }
 
 #endregion
@@ -289,6 +308,8 @@ namespace Lattice.Math
 
         public Matrix<T> GetTranspose() => Matrix.Transpose(this);
         public Matrix<T> GetInverse() => Matrix.Inverse(this);
+        public Matrix<T> GetRowReduce(ref int count) => Matrix.RowReduce(this, ref count);
+        public Matrix<T> GetRowReduce() => Matrix.RowReduce(this);
 
         public readonly T this[int row, int col] { get => this.values[row, col]; }
 
@@ -342,7 +363,47 @@ namespace Lattice.Math
 
         public override string ToString()
         {
-            return $"[{string.Join("\n ", this.GetRows())}]";
+            var strings = new string[this.Rows, this.Columns];
+            var lengths = new int[this.Columns];
+
+            for (var row = 0; row < this.Rows; ++row)
+            {
+                for (var col = 0; col < this.Columns; ++col)
+                {
+                    strings[row, col] = this[row, col].ToString();
+
+                    if (strings[row, col].Length > lengths[col])
+                    {
+                        lengths[col] = strings[row, col].Length;
+                    }
+                }
+            }
+
+
+            // [[x, x]]
+            var result = new StringBuilder();
+
+            for (var row = 0; row < this.Rows; ++row)
+            {
+                for (var col = 0; col < this.Columns; ++col)
+                {
+                    result.Append(col == 0 ? row == 0 ? "[[" : " [" : ", ");
+                    result.Append(' ', lengths[col] - strings[row, col].Length);
+                    result.Append(strings[row, col]);
+                }
+
+                result.Append(row == this.Rows - 1 ? "]]" : "]\n");
+            }
+
+            return result.ToString();
+        }
+
+        public T[,] ToArray()
+        {
+            var values = new T[this.Rows, this.Columns];
+            Array.Copy(this.values, values, this.values.Length);
+
+            return values;
         }
     }
 }

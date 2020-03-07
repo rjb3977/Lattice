@@ -38,10 +38,10 @@ namespace Lattice
                 }
             }
 
-            Console.ReadKey();
+            // Console.ReadKey();
 
-            var upper = Vector.Create<BigRational>(12, i => BigInteger.Pow(2, 48));
-            var lower = upper - upper / 10;
+            // var upper = Vector.Create<BigRational>(12, i => BigInteger.Pow(2, 48));
+            // var lower = upper - upper / 10;
             // var lower = BigRational.Zero;
             // var upper = new BigRational(50048832364193);
             var basis = Matrix.Create(basisEntries).GetTranspose();
@@ -68,26 +68,26 @@ namespace Lattice
             //     1 << 44
             // );
 
-            // var lower = Vector.Create<BigRational>(
-            //     211106232532992,
-            //     211106232532992,
-            //     211106232532992,
-            //     211106232532992,
-            //     211106232532992,
-            //     211106232532992,
-            //     211106232532992,
-            //     211106232532992,
-            //     211106232532992,
-            //     211106232532992,
-            //     211106232532992,
-            //     211106232532992,
-            //     211106232532992,
-            //     211106232532992,
-            //     279275953455104,
-            //     263882790666240,
-            //     263882790666240
-            // );
-            // var upper = Vector.Create<BigRational>(dimensions, x => 1L << 48);
+            var lower = Vector.Create<BigRational>(
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                211106232532992,
+                279275953455104,
+                263882790666240,
+                263882790666240
+            );
+            var upper = Vector.Create<BigRational>(dimensions, x => 1L << 48);
 
             Console.WriteLine("lower:  " + lower);
             Console.WriteLine("offset: " + offset);
@@ -95,7 +95,8 @@ namespace Lattice
             var sw = new Stopwatch();
             sw.Start();
 
-            var results = Lattice.Enumerate(dimensions, lower, upper, basis, offset);
+            //var results = Lattice.Enumerate(dimensions, lower, upper, basis, offset);
+            var results = BetterLattice.Enumerate(dimensions, basis, lower - offset, upper - offset);
 
             sw.Stop();
 
@@ -104,8 +105,9 @@ namespace Lattice
                 Console.WriteLine(x);
             }
 
-            Console.WriteLine($"total:   {results.Count}");
-            Console.WriteLine($"elapsed: {sw.Elapsed}");
+            Console.WriteLine($"total:       {results.Count}");
+            Console.WriteLine($"elapsed:     {sw.Elapsed}");
+            Console.WriteLine($"solve calls: {Lattice.SolveCalls}");
         }
     }
 }
